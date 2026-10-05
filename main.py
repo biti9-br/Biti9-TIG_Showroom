@@ -1,6 +1,7 @@
 # Importações de bibliotecas externas
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Header  # Framework para criar a API e exceções HTTP
 from fastapi.staticfiles import StaticFiles  # Para servir arquivos estáticos (HTML, CSS, JS)
+from fastapi.responses import FileResponse, Response  # Para servir o config.js dinâmico
 from fastapi.middleware.cors import CORSMiddleware  # Para lidar com CORS (Cross-Origin Resource Sharing)
 from pydantic import BaseModel  # Para validação de dados e criação de modelos/schemas
 from typing import Optional  # Para definir campos opcionais nos modelos
@@ -9,6 +10,7 @@ from datetime import datetime  # Para trabalhar com datas e horários
 from contextlib import asynccontextmanager  # Para o ciclo de vida (lifespan) da aplicação
 import uvicorn  # Servidor ASGI para executar a aplicação FastAPI
 import os  # Para interagir com o sistema de arquivos
+import json  # Para montar o config.js a partir das variáveis de ambiente
 from firebase_admin import firestore, auth # Para utilizar o Firestore e Auth
 # Importações de módulos locais
 from storage import (
@@ -364,6 +366,33 @@ async def set_user_role_api(req: SetRoleRequest, user_info: dict = Depends(get_c
         return {"status": "success", "message": f"Role '{req.role}' aplicada com sucesso"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao definir role: {str(e)}")
+
+# Config do front-end (window.APP_CONFIG). Em deploy por container o static/config.js
+# não existe (é ignorado pelo git), então ele é montado das variáveis de ambiente.
+# Sem elas, cai no arquivo static/config.js (uso local). Deve vir antes do mount "/".
+FIREBASE_WEB_ENV = {
+    "apiKey": "FIREBASE_API_KEY",
+    "authDomain": "FIREBASE_AUTH_DOMAIN",
+    "projectId": "FIREBASE_PROJECT_ID",
+    "storageBucket": "FIREBASE_STORAGE_BUCKET",
+    "messagingSenderId": "FIREBASE_MESSAGING_SENDER_ID",
+    "appId": "FIREBASE_APP_ID",
+}
+
+@app.get("/config.js", include_in_schema=False)
+async def frontend_config():
+    firebase_cfg = {key: os.environ.get(var) for key, var in FIREBASE_WEB_ENV.items()}
+    if all(firebase_cfg.values()):
+        cfg = {"firebase": firebase_cfg, "msTenantId": os.environ.get("MS_TENANT_ID") or None}
+        return Response(
+            "window.APP_CONFIG = " + json.dumps(cfg) + ";",
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-store"},
+        )
+    if os.path.exists("static/config.js"):
+        return FileResponse("static/config.js", media_type="application/javascript")
+    missing = [var for key, var in FIREBASE_WEB_ENV.items() if not firebase_cfg[key]]
+    raise HTTPException(status_code=404, detail=f"config.js indisponível: defina {', '.join(missing)}")
 
 # Arquivos estáticos (deve vir após as rotas da API para evitar conflitos)
 if os.path.exists("static"):

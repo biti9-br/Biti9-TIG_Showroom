@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 import re
 import firebase_admin
@@ -13,6 +14,8 @@ load_dotenv()
 
 # Inicializa o Firebase Admin SDK
 SERVICE_ACCOUNT_PATH = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "serviceAccountKey.json")
+# Conteúdo do JSON da service account (útil em deploy, onde o arquivo não vai junto)
+SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
 # Projeto explícito: com ADC de usuário o projeto não vem na credencial e poderia
 # cair no projeto padrão do gcloud (ex: o da Biti9).
 PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID") or None
@@ -20,7 +23,11 @@ PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID") or None
 try:
     if not firebase_admin._apps:
         options = {"projectId": PROJECT_ID} if PROJECT_ID else None
-        if SERVICE_ACCOUNT_PATH and os.path.exists(SERVICE_ACCOUNT_PATH):
+        if SERVICE_ACCOUNT_JSON:
+            print("Inicializando Firebase com FIREBASE_SERVICE_ACCOUNT_JSON")
+            cred = credentials.Certificate(json.loads(SERVICE_ACCOUNT_JSON))
+            firebase_admin.initialize_app(cred, options)
+        elif SERVICE_ACCOUNT_PATH and os.path.exists(SERVICE_ACCOUNT_PATH):
             print(f"Inicializando Firebase com arquivo: {SERVICE_ACCOUNT_PATH}")
             cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
             firebase_admin.initialize_app(cred, options)

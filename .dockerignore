@@ -1,0 +1,21 @@
+# Segredos: a credencial entra em runtime via variavel de ambiente
+# (FIREBASE_SERVICE_ACCOUNT_JSON), nunca dentro da imagem.
+.env
+serviceAccountKey.json
+
+# Dependencias e ambientes locais
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+
+# Nao necessarios para rodar
+.git/
+.gitignore
+.vscode/
+.idea/
+graphify-out/
+logs/
+*.log
+PENDENCIAS.md
