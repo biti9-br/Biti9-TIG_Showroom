@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+aiofiles
+pydantic
+google-cloud-firestore
+python-dotenv
+firebase-admin
+gunicorn

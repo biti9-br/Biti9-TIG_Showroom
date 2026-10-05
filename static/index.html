@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tigre Showroom | Biti9</title>
+    <!-- Aplica o tema salvo antes do primeiro paint, para não piscar o tema errado (FOUC) -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('tigre-showroom-theme');
+                if (!t) {
+                    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+                }
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <!-- TODO(Tigre): trocar pelo favicon do Tigre quando o asset estiver disponível -->
+    <link rel="icon" type="image/png"
+        href="https://www.biti9.com.br/wp-content/uploads/2023/05/cropped-FAVICON-Biti9-32x32.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/picmo@latest/dist/umd/index.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-sidebar">
+                <div class="brand-collab">
+                    <img src="https://www.biti9.com.br/wp-content/uploads/2023/05/BITI9_LOGO_WHITE.svg" alt="Biti9"
+                        class="logo-icon">
+                    <span class="brand-divider">×</span>
+                    <span class="tigre-logo-chip">
+                        <img src="https://www.tigre.com.br/images/logo-tigre.png" alt="Tigre" class="tigre-logo-icon">
+                    </span>
+                </div>
+                <span>Apps</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button id="openModalBtn" class="sidebar-btn primary-btn">
+                    <i data-lucide="plus-circle" style="width:18px;height:18px;"></i>
+                    Nova Automação
+                </button>
+                <button id="openLogsModalBtn" class="sidebar-btn secondary-btn" style="margin-top: 8px;">
+                    <i data-lucide="clipboard-list" style="width:18px;height:18px;"></i>
+                    Logs dos Apps
+                </button>
+                <button id="openUserManagementBtn" class="sidebar-btn secondary-btn"
+                    style="margin-top: 8px; display: none;">
+                    <i data-lucide="users" style="width:18px;height:18px;"></i>
+                    Gerenciar Usuários
+                </button>
+                <button id="openProjectManagementBtn" class="sidebar-btn secondary-btn"
+                    style="margin-top: 8px; display: none;">
+                    <i data-lucide="folder-cog" style="width:18px;height:18px;"></i>
+                    Editar Projetos
+                </button>
+            </nav>
+        </aside>
+
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+        <!-- Main Content Wrapper -->
+        <div class="content-wrapper">
+            <header class="header">
+                <div class="logo">
+                    <button id="sidebarToggleBtn" class="menu-icon-btn" title="Toggle Sidebar">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="brand-collab">
+                        <img src="https://www.biti9.com.br/wp-content/uploads/2023/05/BITI9_LOGO_WHITE.svg" alt="Biti9"
+                            class="logo-icon">
+                        <span class="brand-divider">×</span>
+                        <span class="tigre-logo-chip">
+                            <img src="https://www.tigre.com.br/images/logo-tigre.png" alt="Tigre" class="tigre-logo-icon">
+                        </span>
+                    </div>
+                    <h1>Apps Tigre</h1>
+                </div>
+
+                <div class="header-actions">
+                    <div class="status-indicator">
+                        <span class="status-dot online"></span>
+                        Sistema Operacional
+                    </div>
+
+                    <!-- Ícones fixos como SVG inline (não dependem do carregamento do Lucide via CDN);
+                         a troca entre lua/sol é feita só em CSS a partir de [data-theme] no <html>. -->
+                    <button id="themeToggleBtn" class="theme-toggle-btn" title="Alternar tema claro/escuro">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                        </svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4"></circle>
+                            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Auth Container -->
+                    <div id="authContainer" class="auth-container">
+                        <button id="loginBtn" class="primary-btn" style="padding: 6px 16px; font-size: 0.8rem;">
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <section class="hero-section">
+                    <div class="hero-content">
+                        <div class="hero-text">
+                            <h1 class="hero-title">Sua ideia virou um agente. <br> Explore o que o Tigre está
+                                construindo com a Biti9.
+                            </h1>
+                            <p class="hero-subtitle">Impulsionamos a transformação através da automação inteligente de
+                                processos manuais e repetitivos com o poder da IA.</p>
+                        </div>
+                        <div class="hero-image">
+                            <img src="https://i.ibb.co/MynNSL2t/logo.png" alt="logo" border="0">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Project Tabs Navigation -->
+                <section class="categories-section">
+                    <div class="tabs-scroll-wrapper">
+                        <button class="tabs-arrow tabs-arrow-left" id="tabsArrowLeft" aria-label="Rolar para a esquerda">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <div class="categories-container" id="projectTabsContainer">
+                            <!-- Tabs will be injected here via JS -->
+                        </div>
+                        <button class="tabs-arrow tabs-arrow-right" id="tabsArrowRight" aria-label="Rolar para a direita">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <section class="automations-list-section">
+                    <div class="section-header">
+                        <h2 id="projectTitle">Apps Tigre</h2>
+                        <span class="badge" id="countBadge">0</span>
+                    </div>
+                    <div class="automations-grid" id="automationsGrid">
+                        <!-- Automations will be injected here -->
+                    </div>
+                </section>
+            </main>
+
+            <footer class="site-footer">
+                <div class="footer-content">
+                    <!-- Logo & Description -->
+                    <div class="footer-brand">
+                        <!-- TODO(Tigre): trocar pelo logo do Tigre quando o asset estiver disponível -->
+                        <a href="https://www.biti9.com.br" target="_blank" rel="noopener">
+                            <img src="https://www.biti9.com.br/wp-content/uploads/2023/05/BITI9_LOGO_WHITE.svg"
+                                alt="Biti9 Logo" class="footer-logo">
+                        </a>
+                        <p>
+                            Showroom de automações e agentes de IA do Tigre, desenvolvido em parceria com a Biti9.
+                        </p>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="footer-links">
+                        <h4>Links Rápidos</h4>
+                        <ul>
+                            <li><a href="https://www.biti9.com.br/politica-de-privacidade/">Política de privacidade</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div class="footer-bottom">
+                    &copy; 2026 Tigre. Plataforma desenvolvida por Biti9.
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Add Automation Modal -->
+    <dialog id="automationModal" class="modal">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card">
+                <div class="modal-header">
+                    <h2>Nova Automação</h2>
+                    <button id="closeModalBtn" class="close-btn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="input-group">
+                    <input type="hidden" id="automationId">
+
+                    <!-- Row 1: Name and Icon -->
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="automationIcon" placeholder="URL da Imagem"
+                            style="width: 140px; text-align: center;" value="">
+                        <input type="text" id="automationName" placeholder="Nome da Aplicação (ex: Meu Site)"
+                            autocomplete="off" style="flex-grow: 1;">
+                    </div>
+
+                    <!-- Row 2: Project Selection and Tool -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div class="project-input-wrapper">
+                            <select id="automationProject" style="width: 100%;">
+                                <option value="">Sem Projeto</option>
+                            </select>
+                        </div>
+                        <input type="text" id="automationTool" placeholder="Ferramentas (ex: Google AI Studio)"
+                            autocomplete="off">
+                        <input type="text" id="automationCreator" placeholder="Criador" autocomplete="off">
+                    </div>
+
+                    <!-- Row 2b: New Project -->
+                    <div class="new-project-group" style="margin-top:-4px;">
+                        <input type="text" id="newProjectName" placeholder="Novo Projeto..." autocomplete="off">
+                        <button id="addProjectBtn" class="secondary-btn">+</button>
+                    </div>
+
+                    <!-- Row 3: URL -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                        <input type="url" id="automationUrl" placeholder="URL para monitorar" autocomplete="off">
+                    </div>
+
+                    <!-- Row 4: Short Description and Date -->
+                    <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 8px;">
+                        <input type="text" id="automationShortDescription" placeholder="Breve descrição da aplicação..."
+                            autocomplete="off">
+                        <input type="date" id="automationCreationDate">
+                    </div>
+
+                    <!-- Row 5: AI APIs -->
+                    <input type="text" id="automationAiApis" placeholder="AI APIs Usadas (separadas por vírgula)"
+                        autocomplete="off">
+
+                    <!-- Row 6: Actions -->
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px;">
+                        <label
+                            style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" id="automationFeatured"> Destaque!
+                        </label>
+                        <button id="addBtn" class="primary-btn">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Logs Modal -->
+    <dialog id="logsModal" class="modal modal-xl">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card">
+                <div class="modal-header">
+                    <h2>Logs dos Apps</h2>
+                    <button id="closeLogsModalBtn" class="close-btn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body" style="padding: 1rem;">
+                    <div class="logs-header" style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+                        <button class="clear-logs-btn" id="refreshLogsBtn">Atualizar</button>
+                    </div>
+                    <div class="logs-container" id="logsContainer" style="max-height: 60vh; overflow-y: auto;">
+                        <!-- Logs will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+    <!-- Session Expired Modal -->
+    <dialog id="sessionExpiredModal" class="modal modal-sm">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card" style="text-align: center;">
+                <div class="modal-header" style="justify-content: center;">
+                    <h2 style="color: var(--error);">Sessão Expirada</h2>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem 1rem;">
+                    <p style="margin-bottom: 2rem; color: var(--text-muted);">Sua sessão expirou devido à inatividade ou
+                        tempo limite de 1 hora. Por favor, entre novamente para continuar.</p>
+                    <button id="closeSessionExpiredBtn" class="primary-btn" style="width: 100%;">Entrar
+                        Novamente</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+    <!-- User Management Modal -->
+    <dialog id="userManagementModal" class="modal modal-lg">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card">
+                <div class="modal-header">
+                    <h2>Gerenciar Usuários</h2>
+                    <button id="closeUserManagementBtn" class="close-btn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        <i data-lucide="info"
+                            style="width:14px; height:14px; vertical-align: middle; margin-right: 4px;"></i>
+                        Alterações de permissão exigem que o usuário afetado faça logout/login para atualizar o token.
+                        <br>
+                        Conceda perfil de Admin apenas a usuários de confiança, pois este nível possui acesso total de
+                        gerenciamento. <br>
+                        Administradores podem criar, editar e excluir registros de projetos e automações, além de
+                        gerenciar as permissões de
+                        outros usuários. Colaboradores podem inserir registros de automações, porém não têm permissão
+                        para editar ou
+                        excluir registros existentes nem alterar permissões de acesso.
+                    </p>
+                    <div class="table-container" style="overflow-x: auto;">
+                        <table class="user-management-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--divider-strong); text-align: left;">
+                                    <th style="padding: 12px; color: var(--text-muted); font-weight: 500;">Nome</th>
+                                    <th style="padding: 12px; color: var(--text-muted); font-weight: 500;">Email</th>
+                                    <th
+                                        style="padding: 12px; color: var(--text-muted); font-weight: 500; text-align: right;">
+                                        Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Users list here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+    <!-- Auth Alert Modal -->
+    <dialog id="authAlertModal" class="modal modal-sm">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card" style="text-align: center;">
+                <div class="modal-header" style="justify-content: center;">
+                    <h2 style="color: var(--primary);">Login Necessário</h2>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem 1rem;">
+                    <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Para acessar as aplicações, é necessário
+                        se
+                        autenticar na plataforma.</p>
+                    <button id="authModalLoginBtn" class="primary-btn" style="width: 100%;">Entrar</button>
+                    <button id="closeAuthAlertBtn" class="secondary-btn"
+                        style="width: 100%; margin-top: 8px;">Voltar</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Project Management Modal -->
+    <dialog id="projectManagementModal" class="modal modal-lg">
+        <div class="modal-wrapper">
+            <div class="glass-card modal-card">
+                <div class="modal-header">
+                    <h2>Editar Projetos</h2>
+                    <button id="closeProjectManagementBtn" class="close-btn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="grip-vertical" style="width:14px;height:14px;"></i>
+                        Arraste para reordenar. A ordem afeta a navegação por abas. Clique em salvar após reordenar.
+                    </p>
+
+                    <div id="projectManagementList" style="display: flex; flex-direction: column; gap: 8px; min-height: 60px;">
+                        <!-- Itens injetados via JS -->
+                    </div>
+
+                    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 8px;">
+                        <button id="saveProjectOrderBtn" class="primary-btn">
+                            <i data-lucide="save" style="width:15px;height:15px;"></i>
+                            Salvar Ordem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="config.js?v=3"></script>
+    <script type="module" src="app.js?v=3"></script>
+</body>
+
+</html>

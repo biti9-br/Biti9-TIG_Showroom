@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# Local Data (Project Specific)
+data/*.json
+logs/
+*.log
+serviceAccountKey.json
+
+# Config por cliente/ambiente (Firebase, tenant Azure AD) - ver static/config.example.js
+static/config.js
+# Dependencias Node (instalar com npm install)
+node_modules/

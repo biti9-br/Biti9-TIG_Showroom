@@ -1,0 +1,50 @@
+{
+  "main.py": {
+    "mtime": 1789998710.4877956,
+    "seen": 1789999438.5534925,
+    "ast_hash": "1ac41ccbfe6272f1cc33290b058c09c4",
+    "semantic_hash": "1ac41ccbfe6272f1cc33290b058c09c4"
+  },
+  "monitor.py": {
+    "mtime": 1789998710.4933014,
+    "seen": 1789999438.5534976,
+    "ast_hash": "c46e9753f58adf82e059174b9bd5ae13",
+    "semantic_hash": "c46e9753f58adf82e059174b9bd5ae13"
+  },
+  "package.json": {
+    "mtime": 1789998716.001277,
+    "seen": 1789999438.5534997,
+    "ast_hash": "03b86e087f8f87a0f04c532242695b6a",
+    "semantic_hash": "03b86e087f8f87a0f04c532242695b6a"
+  },
+  "static/app.js": {
+    "mtime": 1789998716.0087276,
+    "seen": 1789999438.5535007,
+    "ast_hash": "a8e422f1f4bef041ccd6f12c4cebc120",
+    "semantic_hash": "a8e422f1f4bef041ccd6f12c4cebc120"
+  },
+  "storage.py": {
+    "mtime": 1789998716.0284874,
+    "seen": 1789999438.5535016,
+    "ast_hash": "4fcf863c16cdf0a8aae32051be0b0513",
+    "semantic_hash": "4fcf863c16cdf0a8aae32051be0b0513"
+  },
+  "README.md": {
+    "mtime": 1789998710.4828184,
+    "seen": 1789999438.5535026,
+    "ast_hash": "9e956faefd0e67bfd017532491204c05",
+    "semantic_hash": "9e956faefd0e67bfd017532491204c05"
+  },
+  "requirements.txt": {
+    "mtime": 1789998716.002798,
+    "seen": 1789999438.5535035,
+    "ast_hash": "d5135846897f52900e114cc64116e5ae",
+    "semantic_hash": "d5135846897f52900e114cc64116e5ae"
+  },
+  "static/index.html": {
+    "mtime": 1789998716.0203898,
+    "seen": 1789999438.5535042,
+    "ast_hash": "aa384526cd021e1b856d523a4ad91ede",
+    "semantic_hash": "aa384526cd021e1b856d523a4ad91ede"
+  }
+}
