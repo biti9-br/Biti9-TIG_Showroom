@@ -2577,3 +2577,34 @@ select:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(251, 99, 26, 0.2);
 }
+
+/* Botões de Entrar / Solicitar acesso lado a lado no header */
+.auth-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Telas estreitas: os dois botões quebram de linha em vez de estourar o header */
+@media (max-width: 480px) {
+    .auth-container {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+}
+
+/* Modal "Solicitar acesso": mensagem de retorno do envio */
+.access-request-feedback {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+}
+
+.access-request-feedback.success {
+    color: var(--success);
+}
+
+.access-request-feedback.error {
+    color: var(--error);
+}

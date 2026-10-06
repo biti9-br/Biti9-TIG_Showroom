@@ -19,6 +19,7 @@ from storage import (
     db, _serialize_firestore_doc
 )
 from monitor import monitor
+from access_request import request_access, AccessRequestError
 
 # Ciclo de vida: inicia o monitor ao subir e o encerra ao desligar
 @asynccontextmanager
@@ -85,6 +86,10 @@ class SetRoleRequest(BaseModel):
 # Modelo para ativar/inativar uma automação
 class SetActiveRequest(BaseModel):
     active: bool
+
+# Modelo para solicitar acesso (visitante sem conta)
+class AccessRequest(BaseModel):
+    email: str
 
 # Modelo para criar/atualizar uma automação (Firestore schema)
 class AutomationRequest(BaseModel):
@@ -316,6 +321,16 @@ async def set_automation_active_api(auto_id: str, req: SetActiveRequest, backgro
 @app.get("/api/logs")
 async def read_logs(user_info: dict = Depends(get_current_user)):
     return await get_logs()
+
+# Endpoint: Solicitar acesso (público: quem pede ainda não tem conta)
+# Abre um chamado por e-mail para o suporte; só aceita e-mails dos domínios da Tigre.
+@app.post("/api/access-request")
+async def request_access_api(req: AccessRequest):
+    try:
+        await request_access(req.email)
+    except AccessRequestError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    return {"status": "success"}
 
 # --- Admin Section ---
 

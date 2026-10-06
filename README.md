@@ -62,3 +62,7 @@ http://127.0.0.1:8001
 
 Copie `.env.example` para `.env`. O backend usa `serviceAccountKey.json` na raiz, se existir; senão cai para as credenciais do gcloud (`gcloud auth application-default login`). O frontend lê a configuração do Firebase em `static/config.js` (fora do git).
 
+### Solicitação de acesso
+
+Na tela de login, o botão **Solicitar acesso** abre um modal onde o visitante informa o e-mail; o backend (`access_request.py`, rota pública `POST /api/access-request`) valida que o domínio é da Tigre (`@tigre.com`) e envia um chamado por e-mail para `suporterobbi9@biti9.com.br`, usando a lib padrão da Biti9 (`mail_utils`, via Microsoft Graph). As variáveis (`GRAPH_API_*`, `MAIL_NOTIFICATION_ACCOUNT`, e as opcionais `ACCESS_REQUEST_*`) estão no `.env.example`. Há limite de uma solicitação por e-mail a cada 10 min e 30 por hora no total.
+

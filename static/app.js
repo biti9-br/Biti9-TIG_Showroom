@@ -137,6 +137,16 @@ function updateAuthUI(user) {
 
         authContainer.appendChild(loginBtn);
 
+        // Quem não tem conta pede acesso por aqui (abre um chamado para o suporte)
+        const requestAccessBtn = document.createElement('button');
+        requestAccessBtn.className = 'secondary-btn';
+        requestAccessBtn.innerText = 'Solicitar acesso';
+        requestAccessBtn.style.padding = '6px 16px';
+        requestAccessBtn.style.fontSize = '0.8rem';
+        requestAccessBtn.addEventListener('click', openAccessRequestModal);
+
+        authContainer.appendChild(requestAccessBtn);
+
         // Esconder elementos administrativos
         if (adminElements.openModalBtn) adminElements.openModalBtn.style.display = 'none';
         if (adminElements.newProjectGroup) adminElements.newProjectGroup.style.display = 'none';
@@ -220,6 +230,71 @@ if (closeSessionExpiredBtn) {
 
 // Verifica a cada 30 segundos
 setInterval(checkSessionExpiration, 30000);
+
+// --- Access Request Logic ---
+// Visitante sem conta informa o e-mail; o backend valida o domínio (@tigre) e abre o chamado por e-mail.
+const accessRequestModal = document.getElementById('accessRequestModal');
+const accessRequestForm = document.getElementById('accessRequestForm');
+const accessRequestEmailInput = document.getElementById('accessRequestEmail');
+const accessRequestFeedback = document.getElementById('accessRequestFeedback');
+const accessRequestSubmitBtn = document.getElementById('accessRequestSubmitBtn');
+
+function setAccessRequestFeedback(message, type) {
+    // textContent (não innerHTML): a mensagem pode vir da resposta do servidor
+    accessRequestFeedback.textContent = message;
+    accessRequestFeedback.className = type ? `access-request-feedback ${type}` : 'access-request-feedback';
+    accessRequestFeedback.style.display = message ? 'block' : 'none';
+}
+
+function openAccessRequestModal() {
+    if (!accessRequestModal) return;
+    accessRequestForm.reset();
+    setAccessRequestFeedback('');
+    accessRequestSubmitBtn.disabled = false;
+    accessRequestModal.showModal();
+    accessRequestEmailInput.focus();
+}
+
+async function submitAccessRequest(event) {
+    event.preventDefault();
+    const email = accessRequestEmailInput.value.trim();
+
+    if (!email || !accessRequestEmailInput.checkValidity()) {
+        setAccessRequestFeedback('Informe um e-mail válido.', 'error');
+        return;
+    }
+
+    accessRequestSubmitBtn.disabled = true;
+    setAccessRequestFeedback('Enviando solicitação...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/access-request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+            // Mantém o botão desabilitado: evita reenviar o mesmo pedido sem querer
+            setAccessRequestFeedback('Solicitação enviada! O suporte vai analisar o pedido e liberar o seu acesso.', 'success');
+        } else {
+            const message = typeof data.detail === 'string' ? data.detail : 'Não foi possível enviar a solicitação.';
+            setAccessRequestFeedback(message, 'error');
+            accessRequestSubmitBtn.disabled = false;
+        }
+    } catch (e) {
+        console.error('Access Request Error:', e);
+        setAccessRequestFeedback('Erro de conexão. Tente novamente.', 'error');
+        accessRequestSubmitBtn.disabled = false;
+    }
+}
+
+if (accessRequestForm) {
+    accessRequestForm.addEventListener('submit', submitAccessRequest);
+    document.getElementById('closeAccessRequestBtn').addEventListener('click', () => accessRequestModal.close());
+    document.getElementById('cancelAccessRequestBtn').addEventListener('click', () => accessRequestModal.close());
+}
 
 // Funções
 async function fetchData() {
@@ -1426,6 +1501,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeAuthAlertBtn) {
         closeAuthAlertBtn.addEventListener('click', () => {
             if (authAlertModal) authAlertModal.close();
+        });
+    }
+
+    const authModalRequestAccessBtn = document.getElementById('authModalRequestAccessBtn');
+    if (authModalRequestAccessBtn) {
+        authModalRequestAccessBtn.addEventListener('click', () => {
+            if (authAlertModal) authAlertModal.close();
+            openAccessRequestModal();
         });
     }
 

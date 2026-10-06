@@ -7,3 +7,4 @@ google-cloud-firestore
 python-dotenv
 firebase-admin
 gunicorn
+-e git+https://biti9@dev.azure.com/biti9/Robbi9_Python/_git/Lib_mail@a5ee36330d66ac9e05a1368799c8cc8f8e47ba55#egg=mail_utils
