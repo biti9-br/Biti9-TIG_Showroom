@@ -62,7 +62,9 @@ http://127.0.0.1:8001
 
 Copie `.env.example` para `.env`. O backend usa `serviceAccountKey.json` na raiz, se existir; senão cai para as credenciais do gcloud (`gcloud auth application-default login`). O frontend lê a configuração do Firebase em `static/config.js` (fora do git).
 
-### Solicitação de acesso
+### Acesso restrito e solicitação de acesso
 
-Na tela de login, o botão **Solicitar acesso** abre um modal onde o visitante informa o e-mail; o backend (`access_request.py`, rota pública `POST /api/access-request`) valida que o domínio é da Tigre (`@tigre.com`) e envia um chamado por e-mail para `suporterobbi9@biti9.com.br`, usando a lib padrão da Biti9 (`mail_utils`, via Microsoft Graph). As variáveis (`GRAPH_API_*`, `MAIL_NOTIFICATION_ACCOUNT`, e as opcionais `ACCESS_REQUEST_*`) estão no `.env.example`. Há limite de uma solicitação por e-mail a cada 10 min e 30 por hora no total.
+Quem não está logado não vê os apps nem as abas de projetos: a tela mostra só o convite para **Entrar com Microsoft** ou **solicitar acesso**, e a API (`GET /api/automations` e `GET /api/projects`) responde 401 sem token válido.
+
+Na tela de login, o botão **Solicitar acesso** abre um modal onde o visitante informa o e-mail; o backend (`access_request.py`, rota pública `POST /api/access-request`) valida que o domínio é da Tigre (`@tigre.com`) e envia um chamado por e-mail para `suporterobbi9@biti9.com.br`, pedindo para liberar o usuário no Entra ID (aplicativo *TIG Showroom Entra ID SSO - PROD*), usando a lib padrão da Biti9 (`mail_utils`, via Microsoft Graph). As variáveis (`GRAPH_API_*`, `MAIL_NOTIFICATION_ACCOUNT`, e as opcionais `ACCESS_REQUEST_*`) estão no `.env.example`. Há limite de uma solicitação por e-mail a cada 10 min e 30 por hora no total.
 

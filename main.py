@@ -53,18 +53,6 @@ async def get_current_user(authorization: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token inválido: {str(e)}")
 
-# Como get_current_user, mas para rotas públicas: sem token válido, trata como visitante (None)
-async def get_optional_user(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-
-    token = authorization.split("Bearer ")[1]
-    try:
-        return auth.verify_id_token(token)
-    except Exception as e:
-        print(f"Token inválido em rota pública, tratando como visitante: {e}")
-        return None
-
 # Modelo para criar um projeto
 class ProjectRequest(BaseModel):
     name: str
@@ -114,15 +102,15 @@ class Automation(AutomationRequest):
     createdAt: str
     createdBy: str
 
-# Endpoint: Listar todas as automações
+# Endpoint: Listar todas as automações (só usuário logado; visitante recebe 401)
 @app.get("/api/automations")
-async def read_automations(user_info: Optional[dict] = Depends(get_optional_user)):
+async def read_automations(user_info: dict = Depends(get_current_user)):
     try:
         automations = await get_automations()
-        # Apps inativos só aparecem para admin. O filtro é aqui porque a rota é pública
-        # (esconder só no front ainda deixaria os dados saírem na API).
+        # Apps inativos só aparecem para admin. O filtro é aqui, e não só no front,
+        # porque esconder só na tela ainda deixaria os dados saírem na API.
         # Apps antigos, sem o campo "active", contam como ativos.
-        if not (user_info and user_info.get("role") == "admin"):
+        if user_info.get("role") != "admin":
             automations = [a for a in automations if a.get("active", True)]
         return automations
     except Exception as e:
@@ -217,9 +205,9 @@ async def update_automation_api(auto_id: str, req: AutomationRequest, background
 
     return update_data
 
-# Endpoint: Listar todos os projetos
+# Endpoint: Listar todos os projetos (só usuário logado: os nomes dos projetos também não vão para visitante)
 @app.get("/api/projects")
-async def read_projects_api():
+async def read_projects_api(user_info: dict = Depends(get_current_user)):
     return await get_projects()
 
 @app.post("/api/projects")

@@ -36,6 +36,11 @@ ACCESS_REQUEST_ALLOWED_DOMAINS: set[str] = {
     for domain in _split_list(os.environ.get("ACCESS_REQUEST_ALLOWED_DOMAINS", "tigre.com"))
 }
 
+# Nome do aplicativo no Microsoft Entra ID (Aplicativos empresariais) onde o suporte libera o usuário
+ACCESS_REQUEST_ENTRA_APP_NAME: str = os.environ.get(
+    "ACCESS_REQUEST_ENTRA_APP_NAME", "TIG Showroom Entra ID SSO - PROD"
+)
+
 # Proteção contra abuso: a rota é pública (quem pede acesso ainda não tem conta)
 EMAIL_COOLDOWN_SECONDS: int = 600  # mesmo e-mail só pode pedir de novo após 10 min
 GLOBAL_LIMIT_PER_HOUR: int = 30  # teto de solicitações por hora para a caixa de suporte
@@ -135,12 +140,15 @@ def _send_access_request_mail(email: str) -> None:
     safe_email = html.escape(email)
     requested_at = datetime.now(_BRASILIA_TZ).strftime("%d/%m/%Y %H:%M:%S")
     subject = f"[Showroom Tigre] Solicitação de acesso - {email}"
+    safe_app_name = html.escape(ACCESS_REQUEST_ENTRA_APP_NAME)
     content = f"""
         <p>Olá, equipe de suporte,</p>
-        <p>Foi solicitado acesso ao <strong>Showroom Tigre</strong> para o e-mail abaixo:</p>
-        <p><strong>E-mail:</strong> <a href="mailto:{safe_email}">{safe_email}</a><br/>
+        <p>Foi solicitado acesso ao <strong>Showroom Tigre</strong>. Por favor, <strong>libere o acesso
+        do usuário abaixo no Microsoft Entra ID</strong>, no aplicativo corporativo indicado:</p>
+        <p><strong>Aplicativo (Entra ID):</strong> {safe_app_name}<br/>
+        <strong>Usuário (e-mail):</strong> <a href="mailto:{safe_email}">{safe_email}</a><br/>
         <strong>Data/hora da solicitação:</strong> {requested_at} (horário de Brasília)</p>
-        <p>Por favor, providencie a liberação do acesso.</p>
+        <p>Depois da liberação, o usuário consegue entrar no Showroom Tigre com a conta Microsoft corporativa.</p>
     """
 
     client.send_email_using_template(
@@ -150,7 +158,7 @@ def _send_access_request_mail(email: str) -> None:
             subject=html.escape(subject),
             header="Solicitação de acesso",
             content=content,
-            preview=f"Solicitação de acesso ao Showroom Tigre para {safe_email}",
+            preview=f"Liberar acesso no Entra ID ({safe_app_name}) para {safe_email}",
         ),
         recipients_to=ACCESS_REQUEST_MAIL_TO,
     )

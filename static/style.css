@@ -2578,6 +2578,85 @@ select:focus {
     box-shadow: 0 0 0 2px rgba(251, 99, 26, 0.2);
 }
 
+/* --- Visitante (deslogado): sem apps nem abas, só o convite para entrar ou pedir acesso --- */
+.access-gate {
+    display: none;
+}
+
+body.logged-out .access-gate {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 0 2.5rem;
+}
+
+/* Apps e abas só existem para quem está logado (e enquanto o login carrega, para não piscar) */
+body.auth-pending .categories-section,
+body.auth-pending .automations-list-section,
+body.logged-out .categories-section,
+body.logged-out .automations-list-section {
+    display: none;
+}
+
+.access-gate-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.access-gate-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(251, 99, 26, 0.12);
+    color: var(--primary);
+}
+
+.access-gate-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.access-gate-card h2 {
+    font-size: 1.4rem;
+    color: var(--text-main);
+}
+
+.access-gate-text {
+    max-width: 440px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+.access-gate-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+    margin-top: 0.5rem;
+}
+
+.access-gate-actions .primary-btn,
+.access-gate-actions .secondary-btn {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+}
+
+.access-gate-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
 /* Botões de Entrar / Solicitar acesso lado a lado no header */
 .auth-container {
     display: flex;
@@ -2599,6 +2678,13 @@ select:focus {
     font-size: 0.85rem;
     line-height: 1.4;
     color: var(--text-muted);
+}
+
+/* Depois de enviar (ou enquanto envia) o botão fica travado: deixa isso visível */
+#accessRequestSubmitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 .access-request-feedback.success {

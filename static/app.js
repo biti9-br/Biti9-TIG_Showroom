@@ -76,6 +76,19 @@ async function logout() {
 function updateAuthUI(user) {
     currentUser = user; // Store globally
     isAdmin = false; // Só vira true depois de ler o claim do token (abaixo)
+
+    // Visitante não vê apps nem abas de projetos: o CSS esconde essas seções por estas classes
+    // (e o servidor também nega os dados sem token; ver main.py).
+    document.body.classList.remove('auth-pending');
+    document.body.classList.toggle('logged-out', !user);
+    if (!user) {
+        // Descarta o que ficou em memória (e respostas ainda em voo) de uma sessão anterior
+        automationsData = [];
+        projectsData = [];
+        automationsFetchSeq++;
+        renderProjectTabs();
+    }
+
     const authContainer = document.getElementById('authContainer');
     if (!authContainer) return;
 
@@ -193,6 +206,9 @@ onAuthStateChanged(auth, (user) => {
         if (!localStorage.getItem('loginTimestamp')) {
             localStorage.setItem('loginTimestamp', Date.now().toString());
         }
+
+        // A API só entrega projetos e apps com token: a carga acontece aqui, depois do login
+        fetchData();
     } else {
         // Se deslogou, limpa o timestamp
         localStorage.removeItem('loginTimestamp');
@@ -251,6 +267,7 @@ function openAccessRequestModal() {
     accessRequestForm.reset();
     setAccessRequestFeedback('');
     accessRequestSubmitBtn.disabled = false;
+    document.getElementById('cancelAccessRequestBtn').textContent = 'Cancelar';
     accessRequestModal.showModal();
     accessRequestEmailInput.focus();
 }
@@ -278,6 +295,7 @@ async function submitAccessRequest(event) {
         if (res.ok) {
             // Mantém o botão desabilitado: evita reenviar o mesmo pedido sem querer
             setAccessRequestFeedback('Solicitação enviada! O suporte vai analisar o pedido e liberar o seu acesso.', 'success');
+            document.getElementById('cancelAccessRequestBtn').textContent = 'Fechar';
         } else {
             const message = typeof data.detail === 'string' ? data.detail : 'Não foi possível enviar a solicitação.';
             setAccessRequestFeedback(message, 'error');
@@ -296,6 +314,12 @@ if (accessRequestForm) {
     document.getElementById('cancelAccessRequestBtn').addEventListener('click', () => accessRequestModal.close());
 }
 
+// Botões do bloco de acesso mostrado ao visitante (ver #accessGate no index.html)
+const gateLoginBtn = document.getElementById('gateLoginBtn');
+const gateRequestAccessBtn = document.getElementById('gateRequestAccessBtn');
+if (gateLoginBtn) gateLoginBtn.addEventListener('click', loginWithMicrosoft);
+if (gateRequestAccessBtn) gateRequestAccessBtn.addEventListener('click', openAccessRequestModal);
+
 // Funções
 async function fetchData() {
     await fetchProjects();
@@ -307,7 +331,8 @@ async function fetchData() {
 // Funções de requisição
 async function fetchProjects() {
     try {
-        const res = await fetch(`${API_URL}/projects`);
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${API_URL}/projects`, { headers });
         if (res.ok) {
             projectsData = await res.json();
             renderProjectsSelect();
@@ -1468,8 +1493,8 @@ document.getElementById('automationIcon').addEventListener('input', (e) => { // 
 // Polling
 // setInterval(fetchAutomations, 5000); // Removido para evitar recriação do DOM e manter estado do toggle
 
-// Initial Load
-fetchData();
+// Initial Load: não carrega nada aqui. Projetos e apps só vêm com o usuário logado
+// (fetchData() é chamado em onAuthStateChanged), porque a API recusa visitante.
 
 // Expose functions to window for onclick handlers in HTML strings
 window.editAutomation = editAutomation;
