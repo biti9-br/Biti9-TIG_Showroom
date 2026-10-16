@@ -10,6 +10,11 @@ ENV APP_HOME=/app
 WORKDIR $APP_HOME
 COPY . ./
 
+# git é necessário para instalar mail_utils (dependência via git+https no requirements.txt).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install production dependencies.
 RUN pip install --no-cache-dir -r requirements.txt
 
