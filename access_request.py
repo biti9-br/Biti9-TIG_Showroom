@@ -7,12 +7,14 @@ import time
 import traceback
 from collections import deque
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Configuração de e-mail (padrão Biti9: lib mail_utils via Microsoft Graph) ---
+# --- Configuração de e-mail (Microsoft Graph, chamado direto via httpx) ---
 # Mesmos nomes de variável dos projetos Robbi9, para reaproveitar as credenciais.
 GRAPH_API_CLIENT_ID: str | None = os.environ.get("GRAPH_API_CLIENT_ID")
 GRAPH_API_CLIENT_SECRET: str | None = os.environ.get("GRAPH_API_CLIENT_SECRET")
@@ -54,8 +56,13 @@ _BRASILIA_TZ = timezone(timedelta(hours=-3))
 _last_request_by_email: dict[str, float] = {}
 _recent_requests: deque[float] = deque()
 
-_mail_client = None
-_mail_client_lock = threading.Lock()
+_GRAPH_SCOPE = "https://graph.microsoft.com/.default"
+_HTTP_TIMEOUT_SECONDS: int = 20
+_TOKEN_REFRESH_MARGIN_SECONDS: int = 120  # renova o token um pouco antes de expirar
+
+_graph_token: str | None = None
+_graph_token_expires_at: float = 0.0
+_graph_token_lock = threading.Lock()
 
 
 class AccessRequestError(Exception):
@@ -116,27 +123,64 @@ def _reserve_slot(email: str) -> None:
     _recent_requests.append(now)
 
 
-def _get_mail_client():
-    """Cria o GraphMailClient na primeira chamada (o construtor já busca o token) e reaproveita depois."""
-    global _mail_client
-    with _mail_client_lock:
-        if _mail_client is None:
-            # Import tardio: sem a lib/credenciais o app sobe normalmente e só esta rota fica indisponível
-            from mail_utils import GraphMailClient
+def _get_graph_token() -> str:
+    """Token do Microsoft Graph (client credentials), reaproveitado até perto de expirar.
 
-            _mail_client = GraphMailClient(
-                client_id=GRAPH_API_CLIENT_ID,
-                client_secret=GRAPH_API_CLIENT_SECRET,
-                tenant_id=GRAPH_API_TENANT_ID,
+    Levanta RuntimeError se o Azure AD recusar as credenciais.
+    """
+    global _graph_token, _graph_token_expires_at
+    with _graph_token_lock:
+        if _graph_token and time.monotonic() < _graph_token_expires_at:
+            return _graph_token
+
+        response = httpx.post(
+            f"https://login.microsoftonline.com/{GRAPH_API_TENANT_ID}/oauth2/v2.0/token",
+            data={
+                "client_id": GRAPH_API_CLIENT_ID,
+                "client_secret": GRAPH_API_CLIENT_SECRET,
+                "scope": _GRAPH_SCOPE,
+                "grant_type": "client_credentials",
+            },
+            timeout=_HTTP_TIMEOUT_SECONDS,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Falha ao obter o token do Microsoft Graph (HTTP {response.status_code}): {response.text[:500]}"
             )
-        return _mail_client
+        payload = response.json()
+        _graph_token = payload["access_token"]
+        _graph_token_expires_at = (
+            time.monotonic() + int(payload.get("expires_in", 3600)) - _TOKEN_REFRESH_MARGIN_SECONDS
+        )
+        return _graph_token
+
+
+def _send_mail(subject: str, html_body: str, recipients: list[str]) -> None:
+    """Envia um e-mail HTML pela caixa MAIL_NOTIFICATION_ACCOUNT via Graph (sendMail).
+
+    Sucesso só com HTTP 202; qualquer outro status levanta RuntimeError.
+    """
+    response = httpx.post(
+        f"https://graph.microsoft.com/v1.0/users/{quote(MAIL_NOTIFICATION_ACCOUNT, safe="@")}/sendMail",
+        headers={"Authorization": f"Bearer {_get_graph_token()}"},
+        json={
+            "message": {
+                "subject": subject,
+                "body": {"contentType": "HTML", "content": html_body},
+                "toRecipients": [{"emailAddress": {"address": address}} for address in recipients],
+            },
+            "saveToSentItems": False,
+        },
+        timeout=_HTTP_TIMEOUT_SECONDS,
+    )
+    if response.status_code != 202:
+        raise RuntimeError(
+            f"Falha ao enviar e-mail pelo Microsoft Graph (HTTP {response.status_code}): {response.text[:500]}"
+        )
 
 
 def _send_access_request_mail(email: str) -> None:
     """Envia o chamado ao suporte (bloqueante: chamar via asyncio.to_thread)."""
-    from mail_utils import MailTemplateBiti9
-
-    client = _get_mail_client()
     safe_email = html.escape(email)
     requested_at = datetime.now(_BRASILIA_TZ).strftime("%d/%m/%Y %H:%M:%S")
     subject = f"[Showroom Tigre] Solicitação de acesso - {email}"
@@ -151,17 +195,13 @@ def _send_access_request_mail(email: str) -> None:
         <p>Depois da liberação, o usuário consegue entrar no Showroom Tigre com a conta Microsoft corporativa.</p>
     """
 
-    client.send_email_using_template(
-        account=MAIL_NOTIFICATION_ACCOUNT,
-        subject=subject,
-        template=MailTemplateBiti9(
-            subject=html.escape(subject),
-            header="Solicitação de acesso",
-            content=content,
-            preview=f"Liberar acesso no Entra ID ({safe_app_name}) para {safe_email}",
-        ),
-        recipients_to=ACCESS_REQUEST_MAIL_TO,
+    html_body = (
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222">'
+        '<h2 style="margin:0 0 16px">Solicitação de acesso</h2>'
+        f"{content}"
+        "</div>"
     )
+    _send_mail(subject=subject, html_body=html_body, recipients=ACCESS_REQUEST_MAIL_TO)
 
 
 async def request_access(raw_email: str) -> None:
