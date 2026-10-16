@@ -1,0 +1,49 @@
+# Build do container com acesso ao repositório privado Lib_mail (Azure DevOps).
+# O PAT vem do Secret Manager (secret "azure-devops-pat") e entra no build como
+# secret do BuildKit, sem ficar na imagem.
+#
+# Substituições obrigatórias (defina no trigger):
+#   _IMAGE   caminho da imagem sem tag, ex.: us-central1-docker.pkg.dev/<projeto>/<repo>/showroom
+#   _SERVICE nome do serviço no Cloud Run
+#   _REGION  região do serviço no Cloud Run
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    env:
+      - DOCKER_BUILDKIT=1
+    secretEnv:
+      - AZURE_DEVOPS_PAT
+    args:
+      - -c
+      - |
+        set -eu
+        umask 077
+        printf '%s' "$$AZURE_DEVOPS_PAT" > /tmp/azure_pat
+        docker build \
+          --secret id=azure_pat,src=/tmp/azure_pat \
+          -t "${_IMAGE}:${COMMIT_SHA}" \
+          .
+        rm -f /tmp/azure_pat
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}:${COMMIT_SHA}"]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_IMAGE}:${COMMIT_SHA}
+      - --region=${_REGION}
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${PROJECT_ID}/secrets/azure-devops-pat/versions/latest
+      env: AZURE_DEVOPS_PAT
+
+options:
+  logging: CLOUD_LOGGING_ONLY

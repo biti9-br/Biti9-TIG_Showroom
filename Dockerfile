@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
 FROM python:3.10-slim
@@ -16,7 +17,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies.
-RUN pip install --no-cache-dir -r requirements.txt
+# O PAT do Azure DevOps (repositório privado Lib_mail) entra como secret do BuildKit
+# (--secret id=azure_pat): fica só durante este RUN, não vai para a imagem nem para o histórico.
+RUN --mount=type=secret,id=azure_pat \
+    set -eu; \
+    [ -s /run/secrets/azure_pat ] || { echo "Secret azure_pat ausente: passe --secret id=azure_pat,src=<arquivo com o PAT>" >&2; exit 1; }; \
+    export GIT_CONFIG_GLOBAL=/tmp/azure-gitconfig; \
+    trap 'rm -f /tmp/azure-gitconfig' EXIT; \
+    printf '[url "https://biti9:%s@dev.azure.com/"]\n\tinsteadOf = https://dev.azure.com/\n' "$(cat /run/secrets/azure_pat)" > "$GIT_CONFIG_GLOBAL"; \
+    pip install --no-cache-dir -r requirements.txt
 
 # Run the web service on container startup.
 # Use gunicorn as the process manager with uvicorn workers.
