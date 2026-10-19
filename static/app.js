@@ -76,6 +76,19 @@ async function logout() {
 function updateAuthUI(user) {
     currentUser = user; // Store globally
     isAdmin = false; // Só vira true depois de ler o claim do token (abaixo)
+
+    // Visitante não vê apps nem abas de projetos: o CSS esconde essas seções por estas classes
+    // (e o servidor também nega os dados sem token; ver main.py).
+    document.body.classList.remove('auth-pending');
+    document.body.classList.toggle('logged-out', !user);
+    if (!user) {
+        // Descarta o que ficou em memória (e respostas ainda em voo) de uma sessão anterior
+        automationsData = [];
+        projectsData = [];
+        automationsFetchSeq++;
+        renderProjectTabs();
+    }
+
     const authContainer = document.getElementById('authContainer');
     if (!authContainer) return;
 
@@ -137,6 +150,16 @@ function updateAuthUI(user) {
 
         authContainer.appendChild(loginBtn);
 
+        // Quem não tem conta pede acesso por aqui (abre um chamado para o suporte)
+        const requestAccessBtn = document.createElement('button');
+        requestAccessBtn.className = 'secondary-btn';
+        requestAccessBtn.innerText = 'Solicitar acesso';
+        requestAccessBtn.style.padding = '6px 16px';
+        requestAccessBtn.style.fontSize = '0.8rem';
+        requestAccessBtn.addEventListener('click', openAccessRequestModal);
+
+        authContainer.appendChild(requestAccessBtn);
+
         // Esconder elementos administrativos
         if (adminElements.openModalBtn) adminElements.openModalBtn.style.display = 'none';
         if (adminElements.newProjectGroup) adminElements.newProjectGroup.style.display = 'none';
@@ -183,6 +206,9 @@ onAuthStateChanged(auth, (user) => {
         if (!localStorage.getItem('loginTimestamp')) {
             localStorage.setItem('loginTimestamp', Date.now().toString());
         }
+
+        // A API só entrega projetos e apps com token: a carga acontece aqui, depois do login
+        fetchData();
     } else {
         // Se deslogou, limpa o timestamp
         localStorage.removeItem('loginTimestamp');
@@ -221,6 +247,79 @@ if (closeSessionExpiredBtn) {
 // Verifica a cada 30 segundos
 setInterval(checkSessionExpiration, 30000);
 
+// --- Access Request Logic ---
+// Visitante sem conta informa o e-mail; o backend valida o domínio (@tigre) e abre o chamado por e-mail.
+const accessRequestModal = document.getElementById('accessRequestModal');
+const accessRequestForm = document.getElementById('accessRequestForm');
+const accessRequestEmailInput = document.getElementById('accessRequestEmail');
+const accessRequestFeedback = document.getElementById('accessRequestFeedback');
+const accessRequestSubmitBtn = document.getElementById('accessRequestSubmitBtn');
+
+function setAccessRequestFeedback(message, type) {
+    // textContent (não innerHTML): a mensagem pode vir da resposta do servidor
+    accessRequestFeedback.textContent = message;
+    accessRequestFeedback.className = type ? `access-request-feedback ${type}` : 'access-request-feedback';
+    accessRequestFeedback.style.display = message ? 'block' : 'none';
+}
+
+function openAccessRequestModal() {
+    if (!accessRequestModal) return;
+    accessRequestForm.reset();
+    setAccessRequestFeedback('');
+    accessRequestSubmitBtn.disabled = false;
+    document.getElementById('cancelAccessRequestBtn').textContent = 'Cancelar';
+    accessRequestModal.showModal();
+    accessRequestEmailInput.focus();
+}
+
+async function submitAccessRequest(event) {
+    event.preventDefault();
+    const email = accessRequestEmailInput.value.trim();
+
+    if (!email || !accessRequestEmailInput.checkValidity()) {
+        setAccessRequestFeedback('Informe um e-mail válido.', 'error');
+        return;
+    }
+
+    accessRequestSubmitBtn.disabled = true;
+    setAccessRequestFeedback('Enviando solicitação...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/access-request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+            // Mantém o botão desabilitado: evita reenviar o mesmo pedido sem querer
+            setAccessRequestFeedback('Solicitação enviada! O suporte vai analisar o pedido e liberar o seu acesso.', 'success');
+            document.getElementById('cancelAccessRequestBtn').textContent = 'Fechar';
+        } else {
+            const message = typeof data.detail === 'string' ? data.detail : 'Não foi possível enviar a solicitação.';
+            setAccessRequestFeedback(message, 'error');
+            accessRequestSubmitBtn.disabled = false;
+        }
+    } catch (e) {
+        console.error('Access Request Error:', e);
+        setAccessRequestFeedback('Erro de conexão. Tente novamente.', 'error');
+        accessRequestSubmitBtn.disabled = false;
+    }
+}
+
+if (accessRequestForm) {
+    accessRequestForm.addEventListener('submit', submitAccessRequest);
+    document.getElementById('closeAccessRequestBtn').addEventListener('click', () => accessRequestModal.close());
+    document.getElementById('cancelAccessRequestBtn').addEventListener('click', () => accessRequestModal.close());
+}
+
+// Botões do bloco de acesso mostrado ao visitante (ver #accessGate no index.html)
+const gateLoginBtn = document.getElementById('gateLoginBtn');
+const gateRequestAccessBtn = document.getElementById('gateRequestAccessBtn');
+if (gateLoginBtn) gateLoginBtn.addEventListener('click', loginWithMicrosoft);
+if (gateRequestAccessBtn) gateRequestAccessBtn.addEventListener('click', openAccessRequestModal);
+
 // Funções
 async function fetchData() {
     await fetchProjects();
@@ -232,7 +331,8 @@ async function fetchData() {
 // Funções de requisição
 async function fetchProjects() {
     try {
-        const res = await fetch(`${API_URL}/projects`);
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${API_URL}/projects`, { headers });
         if (res.ok) {
             projectsData = await res.json();
             renderProjectsSelect();
@@ -1393,8 +1493,8 @@ document.getElementById('automationIcon').addEventListener('input', (e) => { // 
 // Polling
 // setInterval(fetchAutomations, 5000); // Removido para evitar recriação do DOM e manter estado do toggle
 
-// Initial Load
-fetchData();
+// Initial Load: não carrega nada aqui. Projetos e apps só vêm com o usuário logado
+// (fetchData() é chamado em onAuthStateChanged), porque a API recusa visitante.
 
 // Expose functions to window for onclick handlers in HTML strings
 window.editAutomation = editAutomation;
@@ -1426,6 +1526,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeAuthAlertBtn) {
         closeAuthAlertBtn.addEventListener('click', () => {
             if (authAlertModal) authAlertModal.close();
+        });
+    }
+
+    const authModalRequestAccessBtn = document.getElementById('authModalRequestAccessBtn');
+    if (authModalRequestAccessBtn) {
+        authModalRequestAccessBtn.addEventListener('click', () => {
+            if (authAlertModal) authAlertModal.close();
+            openAccessRequestModal();
         });
     }
 

@@ -4,7 +4,7 @@ _Atualizado em 02/10/2026. A migração está funcionando de ponta a ponta; sobr
 
 ## Estado atual
 
-| Item | Status |
+| Item | Status | 
 |---|---|
 | Projeto Firebase `TIG-AI` (`tig-ai`) | ✅ acesso liberado (meu papel: *Administrador de desenvolvimento de apps*) |
 | Firestore `(default)` | ✅ leitura e gravação testadas pelo backend |
