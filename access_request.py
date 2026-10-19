@@ -160,8 +160,9 @@ def _send_mail(subject: str, html_body: str, recipients: list[str]) -> None:
 
     Sucesso só com HTTP 202; qualquer outro status levanta RuntimeError.
     """
+    sender = quote(MAIL_NOTIFICATION_ACCOUNT, safe="@")
     response = httpx.post(
-        f"https://graph.microsoft.com/v1.0/users/{quote(MAIL_NOTIFICATION_ACCOUNT, safe="@")}/sendMail",
+        f"https://graph.microsoft.com/v1.0/users/{sender}/sendMail",
         headers={"Authorization": f"Bearer {_get_graph_token()}"},
         json={
             "message": {
