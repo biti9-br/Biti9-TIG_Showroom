@@ -273,6 +273,19 @@ body {
     opacity: 0.6;
 }
 
+/* Logo da Biti9: versão branca no tema escuro, versão preta no tema claro */
+.logo-light {
+    display: none;
+}
+
+[data-theme="light"] .logo-dark {
+    display: none;
+}
+
+[data-theme="light"] .logo-light {
+    display: block;
+}
+
 .tigre-logo-chip {
     display: flex;
     align-items: center;
@@ -2446,8 +2459,10 @@ select:focus {
 
 .footer-content {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 3rem;
+    /* Só há duas colunas (marca + links): ambas encostadas à esquerda, como o resto da página */
+    grid-template-columns: minmax(0, 350px) auto;
+    justify-content: start;
+    gap: 5rem;
     margin-bottom: 2rem;
 }
 
